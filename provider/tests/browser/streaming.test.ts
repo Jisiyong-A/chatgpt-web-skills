@@ -90,6 +90,7 @@ test('SSE handler: tool round streams tool_calls delta + finish tool_calls', asy
   const res = await app.inject({
     method: 'POST',
     url: '/v1/chat/completions',
+    headers: { authorization: 'Bearer test-key-for-browser-fixtures' },
     payload: {
       model: 'chatgpt-web',
       messages: [{ role: 'user', content: 'search' }],
@@ -150,6 +151,7 @@ test('SSE handler emits OpenAI chunk format + [DONE] (stubbed client)', async ()
   const res = await app.inject({
     method: 'POST',
     url: '/v1/chat/completions',
+    headers: { authorization: 'Bearer test-key-for-browser-fixtures' },
     payload: { model: 'chatgpt-web', messages: [{ role: 'user', content: 'hi' }], stream: true },
   });
   await app.close();
