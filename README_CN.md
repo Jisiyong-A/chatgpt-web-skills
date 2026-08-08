@@ -8,9 +8,12 @@
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/Jisiyong-A/chatgpt-web-skills/pulls)
 
-**无需 API key · 无需逆向 · 原生支持文件上传 · Agent Skills 开箱即用**
+**网页登录态驱动 · 原生支持文件上传 · Agent Skills 开箱即用**
 
 [English](README.md) | 中文
+
+> ⚠️ **合规提示**：本项目通过本地 Chrome/CDP 驱动你的网页登录态，**不构成 OpenAI 官方 API**，
+> 也不保证符合服务条款、账号政策或长期可用性。使用者必须自行检查当前条款、账号权限、隐私和数据处理要求。
 
 </div>
 
@@ -30,7 +33,7 @@ OpenAI 客户端 (Hermes / Codex / 任意脚本)
 真实 Chrome (CDP 9233, 已登录的 chatgpt.com 会话)
 ```
 
-**核心卖点**：不是逆向 API（易被风控封号），而是**驱动你自己的真实浏览器会话**——稳定、合法、像真人一样使用，还天然支持文件上传。
+**技术路径**：不是逆向私有 HTTP API，而是通过 Chrome DevTools Protocol 驱动**你自己的真实浏览器登录会话**——行为接近真人操作，避免直接逆向接口的稳定性问题。但这**不构成合规保证**：是否违反 OpenAI 服务条款由使用者自行评估。
 
 ## ✨ 特性
 
@@ -47,7 +50,7 @@ OpenAI 客户端 (Hermes / Codex / 任意脚本)
 | 能力 | **本仓库** | [chat2api](https://github.com/lanqian528/chat2api) | [ChatGPT-Web2API](https://github.com/Octo-Lex/ChatGPT-Web2API) | [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) |
 |---|---|---|---|---|
 | 驱动方式 | **真实 Chrome (CDP)** | HTTP 逆向 | CDP | 逆向/API 混合 |
-| 抗风控/封号风险 | 🟢 低（真人会话） | 🔴 高 | 🟢 低 | 🟡 中 |
+| 逆向接口稳定性风险 | 🟡 低（真人会话路径） | 🔴 高 | 🟡 低 | 🟡 中 |
 | 文件上传 (MP3/PDF) | ✅ **支持** | ❌ | ❌ | ❌ |
 | Codex Responses API | ✅ **支持** | ❌ | ❌ | ✅ |
 | Agent Skills 配套 | ✅ **3 个标准 skill** | ❌ | 仅 MCP | ❌ |
@@ -69,18 +72,27 @@ OpenAI 客户端 (Hermes / Codex / 任意脚本)
 
 > ⚠️ 首次使用：在弹出的窗口手动登录 ChatGPT，登录态持久化在该 profile。
 
-### 2. 启动 provider
+### 2. 生成本地 API key（v1.1.0 默认必填）
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"   # 复制输出
+setx ADAPTER_API_KEY <上一步的输出>                          # Windows 持久化
+```
+
+> 所有请求需带 `Authorization: Bearer <key>`。本机单用户可跳过（设 `ADAPTER_REQUIRE_API_KEY=false`），但不建议。
+
+### 3. 启动 provider
 
 ```bash
 cd provider/
 npm install --include=dev
-CHROME_LAUNCH_AT_STARTUP=false CHROME_CDP_PORT=9233 ADAPTER_PORT=8765 npm run dev
+CHROME_LAUNCH_AT_STARTUP=false CHROME_CDP_PORT=9233 ADAPTER_PORT=8765 ADAPTER_API_KEY=<key> npm run dev
 ```
 
-### 3. 验证
+### 4. 验证
 
 ```bash
-curl http://127.0.0.1:8765/v1/models
+curl -H "Authorization: Bearer <key>" http://127.0.0.1:8765/v1/models
 # → {"object":"list","data":[{"id":"chatgpt-web",...}]}
 ```
 
@@ -120,10 +132,10 @@ python skills/chatgpt-web-upload/scripts/cdp_chatgpt_upload.py \
 ## ❓ FAQ
 
 **Q: 会被封号吗？**
-A: 你是用真实浏览器 + 真实登录态，行为与真人无异，远低于逆向 API 的封号风险。建议只在可信设备使用个人账号。
+A: 本项目驱动真实浏览器 + 真实登录态，不逆向私有接口。但**无法承诺合规**：请自行阅读 OpenAI 服务条款（含"不得自动或程序化提取数据或输出"等限制），在可信设备上仅作低频个人使用。
 
 **Q: 为什么不用官方 API？**
-A: 网页版免费、无需 key、额度=你的订阅/免费额度，还支持文件上传（官方 API 文件上传贵且复杂）。
+A: 网页版无需 OpenAI API key（用登录态），额度=你的订阅/免费额度，还支持文件上传。官方 API 更适合需要 SLA/并发的生产场景。
 
 **Q: 出现 401 Missing Auth header？**
 A: 网页会话过期，去 profile Chrome 重新登录 chatgpt.com 即可。

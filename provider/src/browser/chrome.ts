@@ -17,6 +17,7 @@ export interface ChromeManagerOptions {
   cdpPort: number;
   profileDir: string;
   launchAtStartup: boolean;
+  remoteAllowOrigins: string;
   launchTimeoutMs?: number;
   chatgptBaseUrl?: string;
   logger: Logger;
@@ -58,6 +59,7 @@ export class ChromeManager {
       `--remote-debugging-address=${this.opts.cdpHost}`,
       `--remote-debugging-port=${this.opts.cdpPort}`,
       `--user-data-dir=${this.opts.profileDir}`,
+      `--remote-allow-origins=${this.opts.remoteAllowOrigins}`,
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-features=Translate',

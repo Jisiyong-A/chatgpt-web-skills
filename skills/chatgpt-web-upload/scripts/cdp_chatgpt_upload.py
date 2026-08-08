@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-ChatGPT 网页版 CDP 上传+发送工具（修复版）
+ChatGPT 网页版 CDP 上传+发送工具（v1.1.0-hardening）
 用法:
   python cdp_chatgpt_upload.py --file /path/to/file.mp3 --prompt "审核这段音频"
   python cdp_chatgpt_upload.py --file a.mp3 --file b.pdf --prompt "..." --port 9233
 
-修复点（防阻塞）:
+修复点（防阻塞 + 正确性）:
   1. cdp_call(): send 后带超时的匹配循环, 事件消息直接丢弃, 绝不死等
-  2. refresh_target(): 每次操作前重新 GET /json 拿最新 WebSocket 端点 (防导航失效)
+  2. eval_object_id(): Runtime.evaluate 返回 DOM 节点时取 objectId（returnByValue
+     只给 value, DOM 节点需要 objectId 传给 DOM.setFileInputFiles）——P0 修复
   3. poll_until(): 上传/回复用轮询+上限, 不用一次性等待
+  4. 上传失败/chip 未出现 → 停止, 绝不发送无附件请求 —— P0 修复
 """
 import argparse, json, sys, time, urllib.request
 import websocket
@@ -50,17 +52,41 @@ class CDP:
             # 非匹配 id (事件/别的响应) → 忽略继续
         return {"error": f"timeout after {timeout}s waiting for {method}"}
 
-    def eval_js(self, expression, timeout=20):
-        """执行 JS 并返回 value, 失败返回 None"""
-        r = self.call("Runtime.evaluate",
-                      {"expression": expression, "returnByValue": True}, timeout=timeout)
+    def eval_result(self, expression, timeout=20):
+        """返回 Runtime.evaluate 的完整 result 对象（含 value 和 objectId）。"""
+        r = self.call(
+            "Runtime.evaluate",
+            {"expression": expression, "returnByValue": True},
+            timeout=timeout,
+        )
         if "error" in r:
             return None
-        return r.get("result", {}).get("value")
+        return r.get("result", {})
+
+    def eval_value(self, expression, timeout=20):
+        """执行 JS 并返回可序列化的 value; DOM 节点/不可序列化时返回 None。"""
+        result = self.eval_result(expression, timeout=timeout)
+        if not result:
+            return None
+        return result.get("value")
+
+    def eval_object_id(self, expression, timeout=20):
+        """P0 修复: DOM 节点的 objectId 在 result.objectId, 不在 value 里。"""
+        result = self.eval_result(expression, timeout=timeout)
+        if not result:
+            return None
+        return result.get("objectId")
+
+    def release_object(self, object_id):
+        """释放 RemoteObject, 避免泄漏。"""
+        if object_id:
+            self.call("Runtime.releaseObject", {"objectId": object_id}, timeout=5)
 
     def close(self):
-        try: self.ws.close()
-        except Exception: pass
+        try:
+            self.ws.close()
+        except Exception:
+            pass
 
 def poll_until(fn, desc, timeout, interval=POLL_INTERVAL):
     """核心修复③: 轮询+上限"""
@@ -106,47 +132,68 @@ def main():
     cdp.call("DOM.enable")
 
     # 2. 上传文件: 找到所有 file input 并设置 (ChatGPT 有多个 input 节点)
-    inputs = cdp.eval_js("""
+    inputs = cdp.eval_value("""
       (() => { const els = document.querySelectorAll('input[type=file]');
                 return els.length ? Array.from(els).map((_, i) => i) : null; })()
     """)
     if inputs is None:
         # 没有 file input 就打开上传入口
         print("· 未找到 file input, 尝试打开上传入口...")
-        cdp.eval_js("""
+        cdp.eval_value("""
           (() => { const b = document.querySelector('button[aria-label*="attach" i], button[data-testid="composer-attach"]');
                     if (b) b.click(); return !!b; })()
         """)
         time.sleep(2)
-        inputs = cdp.eval_js("""
+        inputs = cdp.eval_value("""
           (() => { const els = document.querySelectorAll('input[type=file]');
                     return els.length ? Array.from(els).map((_, i) => i) : null; })()
         """)
     if not inputs:
         print("✗ 找不到上传 input")
-        cdp.close(); sys.exit(1)
+        cdp.close()
+        sys.exit(1)
 
+    # P0 修复: 用 eval_object_id 拿 DOM 节点 objectId, 设置后立即释放
     set_ok = False
     for i in inputs:
-        obj = cdp.eval_js(f"document.querySelectorAll('input[type=file]')[{i}]")
-        if obj is None:
+        object_id = cdp.eval_object_id(
+            f"document.querySelectorAll('input[type=file]')[{i}]"
+        )
+        if not object_id:
             continue
-        r = cdp.call("DOM.setFileInputFiles",
-                     {"objectId": obj["objectId"], "files": args.file}, timeout=30)
-        if "error" not in r:
-            set_ok = True
+        try:
+            result = cdp.call(
+                "DOM.setFileInputFiles",
+                {"objectId": object_id, "files": args.file},
+                timeout=30,
+            )
+            if "error" not in result:
+                set_ok = True
+                break
+        finally:
+            cdp.release_object(object_id)
+
     if not set_ok:
-        print("✗ 文件设置失败")
-        cdp.close(); sys.exit(1)
+        print("✗ 文件设置失败: 所有 file input 都无法接受文件")
+        cdp.close()
+        sys.exit(1)
     print(f"✓ 文件已设置 ({len(args.file)} 个)")
 
-    # 3. 轮询等待文件 chip 出现 (上传+渲染需要时间)
-    poll_until(lambda: cdp.eval_js(
-        "!!document.querySelector('[data-testid*=\"file\"]')"),
-        "文件 chip 出现", timeout=60)
+    # 3. P0 修复: chip 未出现必须停止, 绝不发送无附件请求
+    chip_ok = poll_until(
+        lambda: cdp.eval_value(
+            "!!document.querySelector('[data-testid*=\"file\"]')"
+        ),
+        "文件 chip 出现",
+        timeout=60,
+    )
+    if not chip_ok:
+        print("✗ 文件 chip 未出现, 停止发送(避免发送无附件请求)。若 ChatGPT 改了 selector 需更新脚本。")
+        cdp.close()
+        sys.exit(1)
 
     # 4. 输入提示词 (聚焦编辑器 → Input.insertText 模拟真实输入)
-    focused = cdp.eval_js("""
+    focused = cdp.eval_value("""
       (() => { const ed = document.querySelector('#prompt-textarea, div[contenteditable="true"][data-testid*="composer"], div.prose');
                 if (ed) { ed.focus(); return true; } return false; })()
     """)
@@ -155,7 +202,7 @@ def main():
         time.sleep(1)
     else:
         print("· 编辑器未找到, 尝试粘贴方式...")
-        cdp.eval_js(f"""
+        cdp.eval_value(f"""
           (() => {{ const ed = document.querySelector('#prompt-textarea, div[contenteditable="true"]');
                     if (ed) {{ ed.focus();
                       document.execCommand('insertText', false, {json.dumps(args.prompt)});
@@ -163,7 +210,7 @@ def main():
         """)
 
     # 5. 点击发送
-    sent = cdp.eval_js("""
+    sent = cdp.eval_value("""
       (() => { const b = document.querySelector('button[data-testid="send-button"]');
                 if (b && !b.disabled) { b.click(); return true; } return false; })()
     """)
@@ -175,7 +222,7 @@ def main():
 
     # 6. 轮询等待 assistant 回复 (音频审核可能很慢, 默认上限 300s)
     def got_reply():
-        return cdp.eval_js("""
+        return cdp.eval_value("""
           (() => { const msgs = document.querySelectorAll('[data-message-author-role="assistant"]');
                     const t = msgs.length ? msgs[msgs.length-1].innerText : '';
                     return t && t.length > 20 ? t : null; })()

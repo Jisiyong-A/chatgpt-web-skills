@@ -2,7 +2,7 @@
 name: chatgpt-web-upload
 description: "给ChatGPT网页版(CDP 9233)上传文件并发送提示词。触发: 传MP3/PDF到chatgpt.com审核时。"
 slug: chatgpt-web-upload
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [windows]
@@ -14,6 +14,9 @@ metadata:
 # ChatGPT 网页版 CDP 上传工具
 
 把文件（MP3/PDF/图片等）上传到 **已登录的 ChatGPT 网页版**（CDP 9233，profile `C:\Hermes\chatgpt-web-profile`）并发送提示词。
+
+> ⚠️ **实验性**: 文件上传通过单元测试（objectId 处理），但 **live smoke 尚未执行**。
+> 在 Gate E（真实上传测试）通过前，上传可能因 ChatGPT 前端变化失败；失败时脚本会停止而不发送无附件请求。
 
 ## 异步模式（长任务防"死掉"关键）
 

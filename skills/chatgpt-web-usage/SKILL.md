@@ -62,5 +62,21 @@ python skills/chatgpt-web-upload/scripts/cdp_chatgpt_upload.py \
 ## 注意
 
 - 通道依赖 provider 在线（127.0.0.1:8765）+ Chrome 已登录（CDP 9233）
-- 调用前先 `curl http://127.0.0.1:8765/v1/models` 确认可用
+- 调用前先 `curl http://127.0.0.1:8765/v1/models` 确认可用（若启用鉴权需 `-H "Authorization: Bearer $ADAPTER_API_KEY"`）
 - 网页版会话可能被风控/登出，遇 401 时去 profile Chrome 重新登录
+
+## Safety and routing rules
+
+- 默认路由是常规 provider，**不是** chatgpt-web。
+- 仅对自包含、低敏感度任务使用 chatgpt-web。
+- 未经用户明确批准，绝不发送：密钥/凭据、未发表手稿、私人个人数据、受监管数据、保密客户文件。
+- 不用于批量自动化或并行请求。
+- 调用前用本地 Bearer key 验证 `/health` 和 `/v1/models`（如已启用鉴权）。
+- 遇 AUTH_REQUIRED / HUMAN_REQUIRED / RATE_LIMITED / UI_UNKNOWN / REQUEST_IN_PROGRESS：
+  停止或 fallback，绝不盲目循环重试。
+
+## 合规说明
+
+本项目通过本地 Chrome/CDP 驱动网页登录态，技术路径不同于直接调用私有 HTTP API。
+这不构成 OpenAI 官方 API，也不保证符合服务条款、账号政策或长期可用性。
+使用者必须自行检查当前条款、账号权限、隐私和数据处理要求。

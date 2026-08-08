@@ -1,11 +1,15 @@
 {
   "name": "chatgpt-web-provider",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "OpenAI-compatible local adapter bridging Hermes Agent to ChatGPT Web UI",
   "directories": {
     "test": "tests"
   },
   "scripts": {
+    "predev": "node scripts/check-node.mjs",
+    "prebuild": "node scripts/check-node.mjs",
+    "prestart": "node scripts/check-node.mjs",
+    "pretest": "node scripts/check-node.mjs",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
@@ -18,7 +22,7 @@
   "type": "module",
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13.0"
   },
   "dependencies": {
     "fastify": "^5.11.2",
