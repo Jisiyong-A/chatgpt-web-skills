@@ -1,6 +1,7 @@
 ---
 name: chatgpt-web-provider-ops
 description: "部署/运维 chatgpt-web-provider(本地OpenAI端点, 用CDP驱动真实ChatGPT网页版)。触发: 搭建/修复/诊断 chatgpt-web 通道时。"
+slug: chatgpt-web-provider-ops
 version: 1.0.0
 author: Hermes Agent
 license: MIT
