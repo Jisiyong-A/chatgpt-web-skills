@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v5 — layout shifted (sidebar + right-docked composer column, small round submit)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+  nav { width: 180px; background: #eee; padding: 10px; }
+  nav button { display: block; width: 100%; margin: 6px 0; padding: 6px; border: 1px solid #bbb; background: #fff; }
+  .stage { flex: 1; display: flex; flex-direction: column; }
+  .top { padding: 14px; border-bottom: 1px solid #ddd; }
+  main { flex: 1; display: flex; padding: 0; }
+  .thread { flex: 3; padding: 16px; }
+  .side { flex: 1; border-left: 1px solid #ddd; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .m { padding: 8px; margin: 6px 0; border-radius: 10px; }
+  .m[data-message-author-role="user"] { background: #efe; }
+  .m[data-message-author-role="assistant"] { background: #eef; }
+  .composer-wrap { border: 1px solid #aaa; border-radius: 12px; padding: 8px; }
+  .composer-wrap div[contenteditable] { min-height: 44px; padding: 4px; }
+  .composer-wrap div[contenteditable]:empty::before { content: attr(data-placeholder); color: #aaa; }
+  .round-submit { margin-top: 8px; width: 42px; height: 42px; border-radius: 50%; border: 0; background: #444; color: #fff; float: right; }
+</style></head>
+<body>
+<nav>
+  <button>New chat</button>
+  <button>History item A</button>
+  <button>History item B</button>
+</nav>
+<div class="stage">
+  <div class="top"><strong>Conversation</strong> <button id="model-indicator">GPT-5 mini ▾</button></div>
+  <main>
+    <div class="thread" id="thread">
+      <div class="m" data-message-author-role="user"><p>what time is it?</p></div>
+      <div class="m" data-message-author-role="assistant"><p>check your watch</p></div>
+    </div>
+    <div class="side">
+      <div class="composer-wrap">
+        <div id="editor" contenteditable="true" data-placeholder="Message ChatGPT"></div>
+        <button class="round-submit" id="round-send" aria-label="Send">➤</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+  const editor = document.getElementById('editor');
+  const btn = document.getElementById('round-send');
+  const thread = document.getElementById('thread');
+  editor.addEventListener('input', () => { btn.disabled = editor.innerText.trim() === ''; });
+  btn.disabled = true;
+  btn.addEventListener('click', () => {
+    if (editor.innerText.trim() === '') return;
+    const q = editor.innerText.trim();
+    editor.innerText = '';
+    btn.disabled = true;
+    const um = document.createElement('div');
+    um.className = 'm';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    thread.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('div');
+      am.className = 'm';
+      am.setAttribute('data-message-author-role', 'assistant');
+      am.innerHTML = '<p>fixture-v5 response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      thread.appendChild(am);
+      stop.remove();
+    }, 750);
+  });
+</script>
+</body>
+</html>

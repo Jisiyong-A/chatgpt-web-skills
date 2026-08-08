@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>ChatGPT fixture v1 (baseline)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  main { max-width: 800px; margin: 0 auto; padding: 20px; min-height: 90vh; display: flex; flex-direction: column; }
+  .messages { flex: 1; overflow-y: auto; }
+  .msg { padding: 10px; margin: 8px 0; border-radius: 8px; }
+  .msg[data-message-author-role="user"] { background: #eef; align-self: flex-end; }
+  .msg[data-message-author-role="assistant"] { background: #efe; }
+  .composer-wrap { position: sticky; bottom: 0; background: #fff; padding: 10px; border-top: 1px solid #ccc; }
+  #prompt-textarea { min-height: 48px; border: 1px solid #999; border-radius: 8px; padding: 8px; }
+  [contenteditable]:empty::before { content: attr(data-placeholder); color: #aaa; }
+  #send-btn { float: right; margin-top: 8px; padding: 8px 20px; }
+</style></head>
+<body>
+<nav style="position:fixed;left:0;top:0;width:150px;background:#f2f2f2;height:100%;padding:10px;">
+  <button id="new-chat-btn" aria-label="New chat">＋ New chat</button>
+</nav>
+<main>
+  <div class="messages" data-testid="conversation-turns" style="margin-left:160px;">
+    <div class="msg" data-message-author-role="user"><p>What is 2+2?</p></div>
+    <div class="msg" data-message-author-role="assistant"><p>4</p></div>
+  </div>
+  <div style="margin-left:160px;">
+  <div id="prompt-textarea" contenteditable="true" role="textbox" data-placeholder="Message ChatGPT"></div>
+  <button id="send-btn" data-testid="send-button" aria-disabled="true">Send</button>
+  </div>
+</main>
+<script>
+  const composer = document.getElementById('prompt-textarea');
+  const send = document.getElementById('send-btn');
+  const turns = document.querySelector('[data-testid="conversation-turns"]');
+  composer.addEventListener('input', () => {
+    send.setAttribute('aria-disabled', composer.innerText.trim() === '' ? 'true' : 'false');
+  });
+  send.addEventListener('click', () => {
+    if (composer.innerText.trim() === '') return;
+    const q = composer.innerText.trim();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg';
+    userMsg.setAttribute('data-message-author-role', 'user');
+    userMsg.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    turns.appendChild(userMsg);
+    send.removeAttribute('data-testid');
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const ai = document.createElement('div');
+      ai.className = 'msg';
+      ai.setAttribute('data-message-author-role', 'assistant');
+      ai.innerHTML = '<p>fixture-v1 response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      turns.appendChild(ai);
+      stop.remove();
+      send.setAttribute('data-testid', 'send-button');
+    }, 800);
+  });
+  document.getElementById('new-chat-btn').addEventListener('click', () => {
+    turns.replaceChildren();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    send.setAttribute('data-testid', 'send-button');
+  });
+</script>
+</body>
+</html>

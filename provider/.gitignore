@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.env
+data/*.db
+data/chatgpt-profile/
+data/ui-fingerprints/
+*.log

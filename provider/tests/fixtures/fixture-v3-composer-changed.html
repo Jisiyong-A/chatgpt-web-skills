@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v3 — composer changed (contenteditable div, different placeholder, inside form)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #fafafa; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; min-height: 90vh; }
+  .convo { flex: 1; }
+  .turn { padding: 10px; margin: 8px 0; border-radius: 6px; }
+  .turn[data-message-author-role="user"] { background: #e8f0fe; }
+  .turn[data-message-author-role="assistant"] { background: #e6f4ea; }
+  form { display: flex; align-items: flex-end; gap: 8px; border: 1px solid #ccc; border-radius: 10px; padding: 10px; }
+  .ask-box { flex: 1; min-height: 44px; padding: 8px; }
+  .ask-box:empty::before { content: attr(data-placeholder); color: #999; }
+  .arrow-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #111; color: #fff; }
+</style></head>
+<body>
+<main>
+  <div class="convo" data-testid="conversation">
+    <div class="turn" data-message-author-role="user"><p>hello?</p></div>
+    <div class="turn" data-message-author-role="assistant"><p>yes?</p></div>
+  </div>
+  <form id="composer-form">
+    <div class="ask-box" id="ask-area" contenteditable="true" data-placeholder="Ask anything"></div>
+    <button class="arrow-btn" id="submit-arrow" type="button" aria-label="Send prompt" disabled>➤</button>
+  </form>
+</main>
+<script>
+  const box = document.getElementById('ask-area');
+  const btn = document.getElementById('submit-arrow');
+  const convo = document.querySelector('[data-testid="conversation"]');
+  box.addEventListener('input', () => { btn.disabled = box.innerText.trim() === ''; });
+  btn.disabled = true;
+  btn.addEventListener('click', () => {
+    if (box.innerText.trim() === '') return;
+    const q = box.innerText.trim();
+    box.innerText = '';
+    btn.disabled = true;
+    const um = document.createElement('div');
+    um.className = 'turn';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    convo.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('div');
+      am.className = 'turn';
+      am.setAttribute('data-message-author-role', 'assistant');
+      am.innerHTML = '<p>fixture-v3 response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      convo.appendChild(am);
+      stop.remove();
+    }, 900);
+  });
+</script>
+</body>
+</html>

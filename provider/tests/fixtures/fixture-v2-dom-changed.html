@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v2 — DOM changed (textarea composer, class-based roles, no data-testid)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  #app { max-width: 760px; margin: 0 auto; padding: 16px; min-height: 92vh; display: flex; flex-direction: column; }
+  #thread { flex: 1; }
+  .message { padding: 8px; margin: 6px 0; }
+  .message.user { background: #ddf; }
+  .message.assistant { background: #dfd; }
+  #inputbar { border-top: 1px dashed #888; padding-top: 8px; }
+  textarea#composer-box { width: 100%; min-height: 56px; resize: vertical; }
+  #do-send { margin-top: 6px; }
+</style></head>
+<body>
+<div id="app">
+  <div id="thread">
+    <div class="message user"><span>hi</span></div>
+    <div class="message assistant"><span>hello there</span></div>
+  </div>
+  <div id="inputbar">
+    <form id="ask-form">
+      <textarea id="composer-box" placeholder="Ask me anything"></textarea>
+      <button id="do-send" type="submit">Send</button>
+    </form>
+  </div>
+</div>
+<script>
+  const composer = document.getElementById('composer-box');
+  const send = document.getElementById('do-send');
+  const thread = document.getElementById('thread');
+  composer.addEventListener('input', () => {
+    send.disabled = composer.value.trim() === '';
+  });
+  send.disabled = true;
+  document.getElementById('ask-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (composer.value.trim() === '') return;
+    const q = composer.value.trim();
+    composer.value = '';
+    send.disabled = true;
+    const um = document.createElement('div');
+    um.className = 'message user';
+    um.innerHTML = '<span>' + q.replace(/</g, '&lt;') + '</span>';
+    thread.appendChild(um);
+    const stop = document.createElement('button');
+    stop.textContent = 'Stop generating';
+    stop.id = 'gen-stop';
+    thread.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('div');
+      am.className = 'message assistant';
+      am.innerHTML = '<span>fixture-v2 response to: ' + q.replace(/</g, '&lt;') + '</span>';
+      thread.appendChild(am);
+      stop.remove();
+    }, 700);
+  });
+</script>
+</div>
+</body>
+</html>

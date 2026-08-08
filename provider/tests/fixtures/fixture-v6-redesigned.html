@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v6 — major redesign (different layout, tags, classes, roles)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #1a1a2e; color: #eee; }
+  header { display: flex; gap: 12px; padding: 10px 20px; background: #16213e; }
+  header input { flex: 1; padding: 8px; border-radius: 6px; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px; min-height: 75vh; }
+  .convo-user { background: #223; border-left: 4px solid #4ea; padding: 12px; margin: 10px 0; }
+  .convo-assistant { background: #232; border-left: 4px solid #a4e; padding: 12px; margin: 10px 0; }
+  .composer-shell { position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: 10px; padding: 14px 24px; background: #16213e; }
+  .composer-shell textarea { flex: 1; min-height: 52px; border-radius: 10px; padding: 10px; background: #0f3460; color: #eee; border: 1px solid #4ea; }
+  .go-btn { width: 52px; height: 52px; border-radius: 12px; background: #4ea; border: 0; color: #122; cursor: pointer; font-size: 20px; }
+  header button { padding: 6px 14px; }
+</style>
+</head>
+<body>
+<header>
+  <input type="text" placeholder="Search conversations">
+  <button>Refresh</button>
+  <button>Sort</button>
+  <button>Settings</button>
+</header>
+<main id="thread-root">
+  <section class="convo-user"><p>previous question</p></section>
+  <section class="convo-assistant"><p>previous answer</p></section>
+  <div class="composer-shell">
+    <textarea id="msg-input" placeholder="Type here"></textarea>
+    <a role="button" aria-label="Submit" class="go-btn" id="submit-link">➤</a>
+  </div>
+</main>
+<script>
+  const composer = document.getElementById('msg-input');
+  const send = document.getElementById('submit-link');
+  const thread = document.getElementById('thread-root');
+  composer.addEventListener('input', () => { send.setAttribute('aria-disabled', composer.value.trim() === '' ? 'true' : 'false'); });
+  send.addEventListener('click', () => {
+    if (composer.value.trim() === '' || send.getAttribute('aria-disabled') === 'true') return;
+    const q = composer.value.trim();
+    composer.value = '';
+    send.setAttribute('aria-disabled', 'true');
+    const um = document.createElement('section');
+    um.className = 'convo-user';
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    thread.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('section');
+      am.className = 'convo-assistant';
+      am.innerHTML = '<p>fixture-v6 response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      thread.appendChild(am);
+      stop.remove();
+    }, 800);
+  });
+</script>
+</body>
+</html>

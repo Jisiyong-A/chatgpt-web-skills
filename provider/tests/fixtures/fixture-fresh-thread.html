@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture — fresh thread (sidebar New chat button)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+  nav { width: 220px; background: #f2f2f2; padding: 12px; }
+  nav button { display: block; width: 100%; margin: 6px 0; padding: 8px; }
+  main { flex: 1; display: flex; flex-direction: column; padding: 20px; }
+  .messages { flex: 1; }
+  .m { padding: 10px; margin: 8px 0; }
+  .m[data-message-author-role="user"] { background: #eef; }
+  .m[data-message-author-role="assistant"] { background: #efe; }
+  #composer { min-height: 48px; border: 1px solid #aaa; border-radius: 8px; padding: 8px; }
+  #composer:empty::before { content: attr(data-placeholder); color: #aaa; }
+  #send { margin-top: 8px; padding: 8px 20px; }
+</style></head>
+<body>
+<nav>
+  <button id="new-chat-btn" aria-label="New chat">＋ New chat</button>
+  <button>History item</button>
+</nav>
+<main>
+  <div class="messages" data-testid="conversation-turns">
+    <div class="m" data-message-author-role="user"><p>old question</p></div>
+    <div class="m" data-message-author-role="assistant"><p>old answer</p></div>
+  </div>
+  <div id="composer" contenteditable="true" data-placeholder="Message ChatGPT"></div>
+  <button id="send" data-testid="send-button" aria-disabled="true">Send</button>
+</main>
+<script>
+  const composer = document.getElementById('composer');
+  const send = document.getElementById('send');
+  const turns = document.querySelector('[data-testid="conversation-turns"]');
+  composer.addEventListener('input', () => {
+    send.setAttribute('aria-disabled', composer.innerText.trim() === '' ? 'true' : 'false');
+  });
+  send.addEventListener('click', () => {
+    if (composer.innerText.trim() === '') return;
+    const q = composer.innerText.trim();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    const um = document.createElement('div');
+    um.className = 'm';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    turns.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('div');
+      am.className = 'm';
+      am.setAttribute('data-message-author-role', 'assistant');
+      am.innerHTML = '<p>fresh-thread response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      turns.appendChild(am);
+      stop.remove();
+      send.setAttribute('data-testid', 'send-button');
+    }, 800);
+  });
+  document.getElementById('new-chat-btn').addEventListener('click', () => {
+    turns.replaceChildren();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    send.setAttribute('data-testid', 'send-button');
+    history.replaceState(null, '', '/');
+  });
+</script>
+</body>
+</html>

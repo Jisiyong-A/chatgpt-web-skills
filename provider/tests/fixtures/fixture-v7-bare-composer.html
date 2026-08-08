@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v7 — bare composer (no semantic clues at all)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #222; color: #eee; }
+  .msg { padding: 10px; margin: 8px 0; }
+  .msg[data-message-author-role="user"] { background: #333; }
+  .msg[data-message-author-role="assistant"] { background: #2a2a2a; }
+  #bare { min-height: 44px; border: 1px solid #666; padding: 6px; margin-top: 120px; }
+  #go { margin-top: 8px; padding: 8px 18px; }
+</style>
+</head>
+<body>
+<nav style="position:fixed;left:0;top:0;width:140px;background:#2a2a2a;height:100%;padding:10px;">
+  <button id="new-chat-btn" aria-label="New chat">＋ New chat</button>
+</nav>
+<div style="max-width:720px;margin:0 auto;padding:20px;">
+  <div id="thread">
+    <div class="msg" data-message-author-role="user"><p>hello</p></div>
+    <div class="msg" data-message-author-role="assistant"><p>hi</p></div>
+  </div>
+  <!-- Deliberately featureless: no id, no role, no placeholder, outside main -->
+  <div id="bare" contenteditable="true"></div>
+  <button id="go" aria-label="发送">Send</button>
+</div>
+<script>
+  const composer = document.getElementById('bare');
+  const send = document.getElementById('go');
+  const thread = document.getElementById('thread');
+  composer.addEventListener('input', () => { send.disabled = composer.innerText.trim() === ''; });
+  send.disabled = true;
+  send.addEventListener('click', () => {
+    if (composer.innerText.trim() === '') return;
+    const q = composer.innerText.trim();
+    composer.innerText = '';
+    send.disabled = true;
+    const um = document.createElement('div');
+    um.className = 'msg';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    thread.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    setTimeout(() => {
+      const am = document.createElement('div');
+      am.className = 'msg';
+      am.setAttribute('data-message-author-role', 'assistant');
+      am.innerHTML = '<p>fixture-v7 response to: ' + q.replace(/</g, '&lt;') + '</p>';
+      thread.appendChild(am);
+      stop.remove();
+    }, 700);
+  });
+  document.getElementById('new-chat-btn').addEventListener('click', () => {
+    thread.replaceChildren();
+    composer.innerText = '';
+    send.disabled = true;
+  });
+</script>
+</body>
+</html>

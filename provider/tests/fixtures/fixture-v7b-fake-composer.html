@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v7b — fake composer (input is immediately wiped)</title>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  .m { padding: 10px; margin: 8px 0; }
+  .m[data-message-author-role="user"] { background: #eef; }
+  .m[data-message-author-role="assistant"] { background: #efe; }
+  #fake { min-height: 44px; border: 1px solid #999; padding: 6px; margin-top: 100px; }
+  #go { margin-top: 8px; padding: 8px 18px; }
+</style>
+</head>
+<body>
+<div style="max-width:720px;margin:0 auto;padding:20px;">
+  <div id="thread">
+    <div class="m" data-message-author-role="user"><p>hi</p></div>
+    <div class="m" data-message-author-role="assistant"><p>hello</p></div>
+  </div>
+  <!-- Looks editable but wipes everything the moment text arrives. -->
+  <div id="fake" contenteditable="true"></div>
+  <button id="go" aria-label="发送">Send</button>
+</div>
+<script>
+  const fake = document.getElementById('fake');
+  fake.addEventListener('input', () => { fake.innerText = ''; });
+</script>
+</body>
+</html>

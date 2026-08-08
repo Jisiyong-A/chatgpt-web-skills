@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>fixture v9 — sentence-by-sentence streaming model</title>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  main { max-width: 720px; margin: 0 auto; padding: 20px; min-height: 90vh; display: flex; flex-direction: column; }
+  .t { flex: 1; }
+  .m { padding: 10px; margin: 8px 0; }
+  .m[data-message-author-role="user"] { background: #eef; }
+  .m[data-message-author-role="assistant"] { background: #efe; }
+  #composer { min-height: 48px; border: 1px solid #aaa; border-radius: 8px; padding: 8px; }
+  #send { margin-top: 8px; padding: 8px 20px; }
+</style>
+</head>
+<body>
+<nav style="position:fixed;left:0;top:0;width:140px;background:#f2f2f2;height:100%;padding:10px;">
+  <button id="new-chat-btn" aria-label="New chat">＋ New chat</button>
+</nav>
+<main>
+  <div class="t" data-testid="conversation-turns">
+    <div class="m" data-message-author-role="user"><p>seed</p></div>
+    <div class="m" data-message-author-role="assistant"><p>seed reply</p></div>
+  </div>
+  <div id="composer" contenteditable="true" data-placeholder="Message ChatGPT"></div>
+  <button id="send" data-testid="send-button" aria-disabled="true">Send</button>
+</main>
+<script>
+  const composer = document.getElementById('composer');
+  const send = document.getElementById('send');
+  const turns = document.querySelector('[data-testid="conversation-turns"]');
+  composer.addEventListener('input', () => {
+    send.setAttribute('aria-disabled', composer.innerText.trim() === '' ? 'true' : 'false');
+  });
+  send.addEventListener('click', () => {
+    if (composer.innerText.trim() === '') return;
+    const q = composer.innerText.trim();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    const um = document.createElement('div');
+    um.className = 'm';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    turns.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    // Sentence-by-sentence generation (mimics ChatGPT streaming renders).
+    const sentences = ['This is the first sentence.', 'Here comes the second one!', 'And the final third sentence.'];
+    const am = document.createElement('div');
+    am.className = 'm';
+    am.setAttribute('data-message-author-role', 'assistant');
+    turns.appendChild(am);
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i >= sentences.length) {
+        clearInterval(timer);
+        stop.remove();
+        send.setAttribute('data-testid', 'send-button');
+        return;
+      }
+      am.innerHTML = '<p>' + sentences.slice(0, i + 1).join(' ') + '</p>';
+      i++;
+    }, 500);
+  });
+  document.getElementById('new-chat-btn').addEventListener('click', () => {
+    turns.replaceChildren();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    send.setAttribute('data-testid', 'send-button');
+  });
+</script>
+</body>
+</html>

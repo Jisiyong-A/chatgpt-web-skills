@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>ChatGPT — generation never completes</title>
+<style>body{font-family:sans-serif;margin:0;}main{max-width:700px;margin:0 auto;padding:20px;min-height:90vh;display:flex;flex-direction:column;}#convo{flex:1;}.m{padding:10px;margin:8px 0;}#composer{min-height:48px;border:1px solid #aaa;border-radius:8px;padding:8px;}#composer:empty::before{content:attr(data-placeholder);color:#aaa;}</style>
+</head>
+<body>
+<main>
+  <div id="convo">
+    <div class="m" data-message-author-role="user"><p>hi</p></div>
+    <div class="m" data-message-author-role="assistant"><p>hello</p></div>
+  </div>
+  <div id="composer" contenteditable="true" data-placeholder="Message ChatGPT"></div>
+  <button data-testid="send-button" aria-disabled="true">Send</button>
+</main>
+<script>
+  const composer = document.getElementById('composer');
+  const send = document.querySelector('[data-testid="send-button"]');
+  const convo = document.getElementById('convo');
+  composer.addEventListener('input', () => { send.setAttribute('aria-disabled', composer.innerText.trim() === '' ? 'true' : 'false'); });
+  send.addEventListener('click', () => {
+    if (composer.innerText.trim() === '') return;
+    const q = composer.innerText.trim();
+    composer.innerText = '';
+    send.setAttribute('aria-disabled', 'true');
+    const um = document.createElement('div');
+    um.className = 'm';
+    um.setAttribute('data-message-author-role', 'user');
+    um.innerHTML = '<p>' + q.replace(/</g, '&lt;') + '</p>';
+    convo.appendChild(um);
+    const stop = document.createElement('button');
+    stop.setAttribute('data-testid', 'stop-button');
+    stop.textContent = 'Stop';
+    document.body.appendChild(stop);
+    // Intentionally never completes.
+  });
+</script>
+</body>
+</html>
