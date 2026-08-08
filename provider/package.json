@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-web-provider",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "OpenAI-compatible local adapter bridging Hermes Agent to ChatGPT Web UI",
   "directories": {
     "test": "tests"

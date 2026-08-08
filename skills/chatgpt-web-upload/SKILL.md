@@ -2,7 +2,7 @@
 name: chatgpt-web-upload
 description: "给ChatGPT网页版(CDP 9233)上传文件并发送提示词。触发: 传MP3/PDF到chatgpt.com审核时。"
 slug: chatgpt-web-upload
-version: 1.1.0
+version: 1.2.0
 author: Hermes Agent
 license: MIT
 platforms: [windows]

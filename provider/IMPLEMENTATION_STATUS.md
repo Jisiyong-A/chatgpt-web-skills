@@ -13,6 +13,7 @@
 | tool protocol | verified | fixture tests | model may still refuse tool call |
 | file upload (CDP script) | **verified** | **Gate E live smoke 通过 (2026-08-09):** 真实上传 small-test.txt → chip 出现 → ChatGPT 回复 UPLOAD_OK; 修复2个隐藏bug (objectId returnByValue / 短回复阈值) | single file per call |
 | local API auth (Bearer) | verified | unit tests (401 without key / 200 with key) | key is local-only, not a ChatGPT credential |
+| Hermes integration | **verified** | **live E2E 2026-08-09**: `-m chatgpt-web --provider custom:chatgpt-web` 真实回复; 鉴权 401/200 实测 | 必须用 named provider 语法; 改 key 后需重启 gateway (见 docs/HERMES_INTEGRATION.md) |
 | Node >= 22.13.0 guard | verified | check-node.mjs pre-script | Node 24.x recommended |
 | `--remote-allow-origins` unified | verified | ChromeManager + bat + README aligned | keep CDP loopback-only |
 | multi-tab | not implemented | none | returns 409 (REQUEST_IN_PROGRESS) |

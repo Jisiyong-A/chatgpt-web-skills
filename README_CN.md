@@ -98,13 +98,17 @@ curl -H "Authorization: Bearer <key>" http://127.0.0.1:8765/v1/models
 
 ### 4. 接入 Agent
 
-**Hermes**：config.yaml `custom_providers` 添加：
+**Hermes**：config.yaml `custom_providers` 添加（详见 [`docs/HERMES_INTEGRATION.md`](docs/HERMES_INTEGRATION.md)）：
 ```yaml
-- base_url: http://127.0.0.1:8765/v1
+- name: chatgpt-web
+  base_url: http://127.0.0.1:8765/v1
+  api_key: <本地密钥>
   model: chatgpt-web
-  name: chatgpt-web
 ```
-然后 `-m chatgpt-web` 直接调用。
+调用必须用 named provider 语法（单独 `-m chatgpt-web` 会因 key 解析路径不同而 401）：
+```bash
+hermes -z "..." chat -m chatgpt-web --provider custom:chatgpt-web
+```
 
 **Codex**：见 [`provider/CODEX_SHARING_GUIDE.md`](provider/CODEX_SHARING_GUIDE.md)。
 
