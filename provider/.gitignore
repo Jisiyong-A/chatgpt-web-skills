@@ -7,3 +7,11 @@ data/*.db
 data/chatgpt-profile/
 data/ui-fingerprints/
 *.log
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+.env
+.adapter-key
+
