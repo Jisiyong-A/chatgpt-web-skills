@@ -11,7 +11,7 @@
 | `/v1/responses` (Codex) | verified | Hermes smoke test | depends on current Codex wire |
 | `stream=true` | verified | SSE tests | sentence-buffered, not token-level |
 | tool protocol | verified | fixture tests | model may still refuse tool call |
-| file upload (CDP script) | pending | unit tests for objectId; **live smoke required** | do not claim supported until live test passes |
+| file upload (CDP script) | **verified** | **Gate E live smoke 通过 (2026-08-09):** 真实上传 small-test.txt → chip 出现 → ChatGPT 回复 UPLOAD_OK; 修复2个隐藏bug (objectId returnByValue / 短回复阈值) | single file per call |
 | local API auth (Bearer) | verified | unit tests (401 without key / 200 with key) | key is local-only, not a ChatGPT credential |
 | Node >= 22.13.0 guard | verified | check-node.mjs pre-script | Node 24.x recommended |
 | `--remote-allow-origins` unified | verified | ChromeManager + bat + README aligned | keep CDP loopback-only |

@@ -30,7 +30,8 @@ class FakeCDP(module.CDP):
 
 
 def test_eval_object_id_reads_remote_object_id():
-    """P0: DOM 节点的 objectId 在 result.objectId, 必须能从 evaluate 结果读出。"""
+    """P0: DOM 节点的 objectId 在 result.objectId, 且必须 returnByValue=False
+    (True 对 DOM 节点会报 'Object reference chain is too long' -32000)。"""
     cdp = FakeCDP()
     cdp.responses = [
         {"result": {"type": "object", "subtype": "node", "objectId": "remote-object-1"}}
@@ -38,15 +39,15 @@ def test_eval_object_id_reads_remote_object_id():
     assert (
         cdp.eval_object_id("document.querySelector('input')") == "remote-object-1"
     )
-    # 且必须请求 returnByValue
     assert cdp.calls[0][0] == "Runtime.evaluate"
-    assert cdp.calls[0][1].get("returnByValue") is True
+    assert cdp.calls[0][1].get("returnByValue") is False
 
 
-def test_eval_value_returns_plain_value():
+def test_eval_value_uses_return_by_value_true():
     cdp = FakeCDP()
     cdp.responses = [{"result": {"type": "number", "value": 42}}]
     assert cdp.eval_value("1 + 1") == 42
+    assert cdp.calls[0][1].get("returnByValue") is True
 
 
 def test_eval_object_id_none_when_no_object_id():

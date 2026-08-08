@@ -52,11 +52,11 @@ class CDP:
             # 非匹配 id (事件/别的响应) → 忽略继续
         return {"error": f"timeout after {timeout}s waiting for {method}"}
 
-    def eval_result(self, expression, timeout=20):
+    def eval_result(self, expression, timeout=20, return_by_value=True):
         """返回 Runtime.evaluate 的完整 result 对象（含 value 和 objectId）。"""
         r = self.call(
             "Runtime.evaluate",
-            {"expression": expression, "returnByValue": True},
+            {"expression": expression, "returnByValue": return_by_value},
             timeout=timeout,
         )
         if "error" in r:
@@ -65,14 +65,16 @@ class CDP:
 
     def eval_value(self, expression, timeout=20):
         """执行 JS 并返回可序列化的 value; DOM 节点/不可序列化时返回 None。"""
-        result = self.eval_result(expression, timeout=timeout)
+        result = self.eval_result(expression, timeout=timeout, return_by_value=True)
         if not result:
             return None
         return result.get("value")
 
     def eval_object_id(self, expression, timeout=20):
-        """P0 修复: DOM 节点的 objectId 在 result.objectId, 不在 value 里。"""
-        result = self.eval_result(expression, timeout=timeout)
+        """P0 修复: DOM 节点的 objectId 在 result.objectId, 不在 value 里。
+        注意: 必须 returnByValue=False —— returnByValue=True 对 DOM 节点会报
+        'Object reference chain is too long' (-32000)。"""
+        result = self.eval_result(expression, timeout=timeout, return_by_value=False)
         if not result:
             return None
         return result.get("objectId")
@@ -221,11 +223,12 @@ def main():
     print("✓ 已发送, 等待回复...")
 
     # 6. 轮询等待 assistant 回复 (音频审核可能很慢, 默认上限 300s)
+    #    阈值 >5 而非 >20: 短回复(如 "UPLOAD_OK")也要能检测到 (Gate E 教训)
     def got_reply():
         return cdp.eval_value("""
           (() => { const msgs = document.querySelectorAll('[data-message-author-role="assistant"]');
                     const t = msgs.length ? msgs[msgs.length-1].innerText : '';
-                    return t && t.length > 20 ? t : null; })()
+                    return t && t.length > 5 ? t : null; })()
         """)
     deadline = time.time() + args.reply_timeout
     while time.time() < deadline:
