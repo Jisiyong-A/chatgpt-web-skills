@@ -7,11 +7,10 @@
 [![GitHub stars](https://img.shields.io/github/stars/Jisiyong-A/chatgpt-web-skills?style=flat-square&color=black)](https://github.com/Jisiyong-A/chatgpt-web-skills)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/Jisiyong-A/chatgpt-web-skills/pulls)
-[![Codex Ready](https://img.shields.io/badge/Codex-Ready-black?style=flat-square)](https://github.com/Jisiyong-A/chatgpt-web-skills)
 
-**无需 API key · 无需付费订阅逆向 · 原生支持文件上传 · Agent Skills 开箱即用**
+**无需 API key · 无需逆向 · 原生支持文件上传 · Agent Skills 开箱即用**
 
-English | [中文](README_CN.md)
+[English](README.md) | 中文
 
 </div>
 
