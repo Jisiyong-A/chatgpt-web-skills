@@ -14,6 +14,25 @@ metadata:
 
 把文件（MP3/PDF/图片等）上传到 **已登录的 ChatGPT 网页版**（CDP 9233，profile `C:\Hermes\chatgpt-web-profile`）并发送提示词。
 
+## 异步模式（长任务防"死掉"关键）
+
+网页版回答慢（音频审核 1-5 分钟+），**同步等待会让 Hermes 卡住**（同事反馈的"Hermes 死掉"现象）。
+长任务必须用后台进程跑脚本，完成自动通知，Hermes 不阻塞：
+
+```bash
+# Hermes terminal 工具: background=true + notify_on_complete=true
+# 脚本内部轮询等待回答（--reply-timeout 已支持 300-600s），
+# 回答完成后自动输出结果并触发通知，Hermes 醒来收集，无需手动。
+python scripts/cdp_chatgpt_upload.py --file audio.mp3 \
+  --prompt "审核" --reply-timeout 600
+```
+
+要点：
+- **不要在前台等**：terminal 前台最长 600s，音频审核可能超
+- **notify_on_complete=true**：脚本退出（无论成功/超时）都会通知 Hermes，不会静默
+- **ADAPTER_TIMEOUT_MS=600000**：provider 侧超时已调 10 分钟（默认 3 分钟会中断长审核）
+- 如果 Hermes 调 provider API（-m chatgpt-web）等长任务，同理：拆成异步或确保 Hermes 模型 timeout ≥ provider timeout
+
 ## 前置条件
 
 1. chatgpt-web-profile Chrome 已启动且已登录：CDP 9233
