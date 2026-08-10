@@ -111,6 +111,17 @@ curl -H "Authorization: Bearer <key>" http://127.0.0.1:8765/v1/models
 hermes -z "..." chat -m chatgpt-web --provider custom:chatgpt-web
 ```
 
+**Session persistence (multi-turn, verified 2026-08-10)**: requests sharing the
+same `X-Hermes-Session-Id` reuse the same web thread (2nd turn sees the 1st);
+different ids map to isolated threads.
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" -H "X-Hermes-Session-Id: my-session" \
+  -d '{"model":"chatgpt-web","messages":[{"role":"user","content":"Remember MELON=watermelon juice. Reply: ok"}]}'
+```
+> ⚠️ ChatGPT web has cross-session Memory — explicitly "remembered" facts may
+> surface in fresh threads (verified).
+
 **Codex**：见 [`provider/CODEX_SHARING_GUIDE.md`](provider/CODEX_SHARING_GUIDE.md)。
 
 ### 5. 上传文件给网页版审核

@@ -14,7 +14,7 @@ metadata:
 # chatgpt-web 使用规则（路由决策）
 
 chatgpt-web 是把真实 ChatGPT 网页会话包装成本地 OpenAI 端点的通道。它**很强**（网页版 GPT 是顶级模型），
-但**有代价**：无会话记忆（每次请求独立网页会话）、慢（走网页）、不能并发。
+但**有代价**：慢（走网页）、不能并发；默认无会话上下文（需显式传 `X-Hermes-Session-Id` 保持会话）。
 
 ## 何时使用 ✅
 
@@ -25,9 +25,9 @@ chatgpt-web 是把真实 ChatGPT 网页会话包装成本地 OpenAI 端点的通
 
 ## 何时不用 ❌
 
-- **需要会话记忆**（多轮连贯对话）→ 主模型自己做
+- **需要会话记忆**（多轮连贯对话）→ 用主模型，或传 `X-Hermes-Session-Id` 复用网页线程（见下）
 - **需要工具**（文件读写/搜索/执行）→ 主模型自己做
-- **私密上下文**（密钥/账号/隐私内容）→ 不要发给网页版
+- **私密上下文**（密钥/账号/隐私内容）→ 不要发给网页版（注意：ChatGPT 网页版自带跨会话 Memory，显式让"记住"的内容可能穿透 session 隔离，被其他会话引用）
 - **需要并发/低延迟** → 主模型或 API 通道
 
 ## 使用方式
@@ -43,6 +43,23 @@ hermes -z "<自包含问题>" chat -m chatgpt-web
 ```bash
 hermes -z "..." chat -m chatgpt-web
 ```
+
+### 会话保持（多轮对话，已验证 2026-08-10）
+
+同一 `X-Hermes-Session-Id` 的多次请求复用同一网页线程（第二轮能引用第一轮内容）；
+不同 session id 隔离到不同线程。已验证：线程内记忆 ✅、线程隔离 ✅。
+
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" -H "X-Hermes-Session-Id: my-session" \
+  -d '{"model":"chatgpt-web","messages":[{"role":"user","content":"记住暗号 MELON=西瓜汁，只回复：好"}]}'
+# 第二轮（同一 session id）：
+#   {"messages":[{"role":"user","content":"MELON是什么？"}]} → 西瓜汁
+```
+
+> ⚠️ **ChatGPT Memory 提示**：网页版自带跨会话记忆。显式说"记住 X"的内容可能被 ChatGPT
+> Memory 捕获，**新线程/新 session 也能引用**（已验证）。这是产品特性，不是通道 bug。
+> 传私密内容前先考虑这一点，或让网页版"忘掉"。
 
 ### 上传文件审核（配 chatgpt-web-upload skill）
 ```bash

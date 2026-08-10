@@ -110,6 +110,15 @@ curl -H "Authorization: Bearer <key>" http://127.0.0.1:8765/v1/models
 hermes -z "..." chat -m chatgpt-web --provider custom:chatgpt-web
 ```
 
+**会话保持（多轮对话，已验证 2026-08-10）**：同一 `X-Hermes-Session-Id` 的多次请求
+复用同一网页线程（第二轮能引用第一轮内容），不同 session id 隔离到不同线程。
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" -H "X-Hermes-Session-Id: my-session" \
+  -d '{"model":"chatgpt-web","messages":[{"role":"user","content":"记住暗号 MELON=西瓜汁，只回复：好"}]}'
+```
+> ⚠️ 注意：ChatGPT 网页版自带跨会话 Memory——显式让"记住"的内容可能被新线程引用（已验证）。
+
 **Codex**：见 [`provider/CODEX_SHARING_GUIDE.md`](provider/CODEX_SHARING_GUIDE.md)。
 
 ### 5. 上传文件给网页版审核
