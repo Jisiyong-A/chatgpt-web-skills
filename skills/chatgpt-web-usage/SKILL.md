@@ -61,6 +61,28 @@ curl -X POST http://127.0.0.1:8765/v1/chat/completions \
 > Memory 捕获，**新线程/新 session 也能引用**（已验证）。这是产品特性，不是通道 bug。
 > 传私密内容前先考虑这一点，或让网页版"忘掉"。
 
+### 模式参数（mode，2026-08-11 实测）
+
+`mode` 字段控制 composer 模式（**全部只在聊天视图运行，绝不使用工作视图**）：
+
+| mode | 功能 | 状态 |
+|---|---|---|
+| `default` | 普通对话 | ✅ 稳定 |
+| `image` | 创建图片（`+`→创建图片） | ✅ **live 验证通过**（返回图片 URL） |
+| `deep-research` | 深度研究（`+`→更多→深度研究） | ⚠️ **实验性**：消息能发出但 ChatGPT 端无响应（2026-08-11 实测 6 次，根因疑似"工作额度 0%"——深度研究消耗工作额度；额度恢复后可能可用） |
+
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"model":"chatgpt-web","mode":"image","messages":[{"role":"user","content":"画一只猫"}]}'
+# 响应额外字段: {"mode":"image","images":["https://chatgpt.com/backend-api/estuary/content?id=..."]}
+# 注意：图片 URL 是会话内临时链接，数分钟内有效
+```
+
+**模型切换（model 别名）**：❌ **当前不可实现**——2026-08 新版 UI 的智能选择器（能力滑块/模型子菜单）
+自动化交互被限制（子菜单 Radix hover 拦截、方向键/点击均无效，4 种方法实测失败）。
+目前 `model` 仅支持 `chatgpt-web`。
+
 ### 上传文件审核（配 chatgpt-web-upload skill）
 ```bash
 python skills/chatgpt-web-upload/scripts/cdp_chatgpt_upload.py \
