@@ -32,6 +32,7 @@ export const chatCompletionsSchema = z
     user: z.string().optional(), // optional Hermes session id (or X-Hermes-Session-Id header)
     tools: z.array(toolSchema).optional(), // Phase 5: declared tools
     tool_choice: z.unknown().optional(),
+    mode: z.enum(['default', 'deep-research', 'image']).optional().default('default'), // 2026-08: composer mode flows
   })
   .passthrough();
 
@@ -78,6 +79,7 @@ export async function handleChatCompletions(
 
   const result = await client.chat(body.messages, {
     hermesSessionId,
+    mode: body.mode,
     tools: body.tools?.map((t) => ({
       name: t.function.name,
       parameters: t.function.parameters,
@@ -109,5 +111,8 @@ export async function handleChatCompletions(
       },
     ],
     usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, // not measurable via web UI
+    ...(result.mode && result.mode !== 'default'
+      ? { mode: result.mode, ...(result.images ? { images: result.images } : {}) }
+      : {}),
   };
 }

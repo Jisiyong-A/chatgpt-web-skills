@@ -19,6 +19,11 @@
 | multi-tab | not implemented | none | returns 409 (REQUEST_IN_PROGRESS) |
 | CAPTCHA bypass | intentionally unsupported | design constraint | manual intervention only |
 | Chinese UI markers | implemented | config markers (登录/验证你是人类/使用上限) | fixture coverage pending |
+| session persistence (`X-Hermes-Session-Id`) | **verified** | **live 2026-08-10/11**: 同 session 第二轮引用第一轮 (42/MELON/ZIPPO); 不同 session 隔离线程 (DB 验证) | ChatGPT 网页版跨会话 Memory 可能穿透 session 隔离 |
+| `mode=image` (创建图片) | **verified** | **live 2026-08-11**: 真实生成图片返回 URL | 图片 URL 为会话内临时链接 (数分钟有效) |
+| `mode=deep-research` | **experimental** | 消息可发出但 ChatGPT 端无响应 (2026-08-11 实测 6 次) | 疑似工作额度 0% (Work credit) 导致; 周日额度重置后可复测 |
+| model switching (多模型) | not implemented | 2026-08 新版 UI 智能选择器自动化受限 (Radix submenu 拦截/方向键点击无效, 4 方法实测失败) | `model` 仅支持 `chatgpt-web` |
+| chat-only view guard | **verified** | `ensureChatView()`: 模式流程前自动切回聊天视图 (单测覆盖) | 绝不使用工作视图 |
 
 ## Test gates
 

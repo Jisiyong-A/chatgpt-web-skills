@@ -46,7 +46,6 @@ test('POST /v1/responses (non-streaming) returns Responses JSON', async () => {
   const res = await app.inject({
     method: 'POST',
     url: '/v1/responses',
-    headers: { authorization: 'Bearer test-key-for-browser-fixtures' },
     payload: {
       model: 'chatgpt-web',
       input: [
@@ -77,7 +76,6 @@ test('POST /v1/responses streams Codex lifecycle events + [done]', async () => {
   const res = await app.inject({
     method: 'POST',
     url: '/v1/responses',
-    headers: { authorization: 'Bearer test-key-for-browser-fixtures' },
     payload: { model: 'chatgpt-web', input: 'hi', stream: true },
   });
   await app.close();
@@ -128,7 +126,6 @@ test('POST /v1/responses with tool output round-trips via envelope', async () =>
   const res = await app.inject({
     method: 'POST',
     url: '/v1/responses',
-    headers: { authorization: 'Bearer test-key-for-browser-fixtures' },
     payload: {
       model: 'chatgpt-web',
       input: [

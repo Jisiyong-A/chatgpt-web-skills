@@ -35,7 +35,6 @@ async function main(): Promise<void> {
     cdpPort: config.cdpPort,
     profileDir: config.profileDir,
     launchAtStartup: config.launchChromeAtStartup,
-    remoteAllowOrigins: config.remoteAllowOrigins,
     chatgptBaseUrl: config.chatgptBaseUrl,
     logger,
   });

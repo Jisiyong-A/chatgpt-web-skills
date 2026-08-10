@@ -7,8 +7,6 @@ export interface AdapterConfig {
   host: string;
   port: number;
   apiKey: string | null;
-  requireApiKey: boolean;
-  remoteAllowOrigins: string;
   chromePath: string;
   cdpHost: string;
   cdpPort: number;
@@ -34,31 +32,11 @@ const DEFAULT_HINTS: Record<string, string[]> = {
   modelIndicator: ['[data-testid="model-selector-button"]', '[data-testid="chatgpt-model-selector-button"]'],
 };
 
-function isLoopback(host: string): boolean {
-  return host === '127.0.0.1' || host === '::1' || host === 'localhost';
-}
-
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AdapterConfig {
-  const host = env.ADAPTER_HOST ?? '127.0.0.1';
-  const apiKey = env.ADAPTER_API_KEY || null;
-  const requireApiKey = (env.ADAPTER_REQUIRE_API_KEY ?? 'true') !== 'false';
-
-  if (requireApiKey && !apiKey) {
-    throw new Error(
-      'ADAPTER_API_KEY is required when ADAPTER_REQUIRE_API_KEY=true. ' +
-      'Set ADAPTER_API_KEY before starting (e.g. setx ADAPTER_API_KEY <secret>).'
-    );
-  }
-  if (!isLoopback(host) && !apiKey) {
-    throw new Error('Non-loopback ADAPTER_HOST requires ADAPTER_API_KEY');
-  }
-
   return {
-    host,
+    host: env.ADAPTER_HOST ?? '127.0.0.1',
     port: Number(env.ADAPTER_PORT ?? 8765),
-    apiKey,
-    requireApiKey,
-    remoteAllowOrigins: env.CHROME_REMOTE_ALLOW_ORIGINS ?? '*',
+    apiKey: env.ADAPTER_API_KEY || null,
     chromePath:
       env.CHROME_PATH ??
       (process.platform === 'win32'
@@ -74,10 +52,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AdapterConfig 
     dbPath:
       env.ADAPTER_DB === 'off' ? null : (env.ADAPTER_DB_PATH ?? path.resolve(__dirname, '../../data/bridge.db')),
     uiHints: DEFAULT_HINTS,
-    authMarkers: [
-      'log in', 'sign up', 'welcome back', 'auth/login', 'continue with google',
-      '登录', '注册', '继续使用 google',
-    ],
+    authMarkers: ['log in', 'sign up', 'welcome back', 'auth/login', 'continue with google'],
     humanMarkers: [
       'verify you are human',
       'security check',
@@ -85,9 +60,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AdapterConfig 
       'captcha',
       'cloudflare',
       'one more step',
-      '验证你是人类',
-      '安全验证',
-      '异常活动',
     ],
     rateLimitMarkers: [
       'usage limit',
@@ -96,9 +68,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AdapterConfig 
       'rate limit',
       'you\u2019ve reached your',
       'you have reached your',
-      '已达到使用上限',
-      '使用次数已达上限',
-      '暂时受限',
     ],
     chatgptBaseUrl: 'https://chatgpt.com',
   };

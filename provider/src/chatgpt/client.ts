@@ -31,6 +31,9 @@ import {
 } from './conversation.js';
 import { waitForResponse, type ResponseOutcome } from './response.js';
 import { startFreshThread } from './new-chat.js';
+import { restoreDefaultMode, type ComposerMode } from './composer-mode.js';
+import { runDeepResearch } from './deep-research.js';
+import { runImageGen } from './image-gen.js';
 import type { LocatorEngine, LocatorResult } from '../semantic/locator-engine.js';
 import type { Persistence } from '../persistence/sqlite.js';
 import { RequestStore, type RequestRecord } from '../persistence/requests.js';
@@ -78,6 +81,9 @@ export interface ChatResult {
   /** Phase 5: parsed tool calls from the web model (OpenAI format). */
   toolCalls?: OpenAIToolCall[];
   toolRepairs?: string[];
+  /** Mode flow (deep-research / image): mode name and generated images. */
+  mode?: ComposerMode;
+  images?: string[];
 }
 
 export interface ChatOptions {
@@ -87,6 +93,8 @@ export interface ChatOptions {
   tools?: ToolDefinition[];
   /** Progress callback with the full current text (streaming support). */
   onDelta?: (text: string) => void;
+  /** Composer mode flow: 'deep-research' | 'image' (default: normal chat). */
+  mode?: ComposerMode;
 }
 
 export interface ClientOptions {
@@ -271,6 +279,11 @@ export class ChatGPTClient {
     try {
       // Overall timeout: covers compose/submit phases too, where a stuck
       // CDP session would otherwise hold the lock forever (§31).
+      // Mode flows need longer budgets (deep research routinely takes minutes).
+      const overallMs =
+        opts.mode === 'deep-research' ? 1_560_000
+        : opts.mode === 'image' ? 330_000
+        : this.opts.timeoutMs! + 30_000;
       return await Promise.race([
         task,
         new Promise<never>((_, reject) => {
@@ -279,15 +292,64 @@ export class ChatGPTClient {
             reject(
               new AdapterError(
                 'GENERATION_TIMEOUT',
-                `request exceeded overall timeout (${this.opts.timeoutMs!}ms + buffer)`,
+                `request exceeded overall timeout (${overallMs}ms)` + (opts.mode ? ` [mode=${opts.mode}]` : ''),
               ),
             );
-          }, this.opts.timeoutMs! + 30_000);
+          }, overallMs);
         }),
       ]);
     } finally {
       this.inFlight = null;
     }
+  }
+
+  /** Mode flows: deep-research / image. Independent of session/request stores
+   *  (mode requests are one-shot UI flows; thread state is still persisted by
+   *  the normal path afterwards). Fail-closed via the flow modules. */
+  private async runModeFlow(
+    mode: Exclude<ComposerMode, 'default'>,
+    messages: ChatMessage[],
+    requestId: string,
+    started: number,
+  ): Promise<ChatResult> {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUser) {
+      throw AdapterError.invalidRequest('mode flows require at least one user message');
+    }
+    const prompt = lastUser.content;
+    let text: string;
+    let images: string[] | undefined;
+    let latencyMs: number;
+    let signals: string[] = [];
+
+    if (mode === 'deep-research') {
+      const r = await runDeepResearch(this.page, prompt, {});
+      text = r.text;
+      latencyMs = r.latencyMs;
+      signals = r.signals;
+    } else if (mode === 'image') {
+      const r = await runImageGen(this.page, prompt, {});
+      text = r.text;
+      images = r.images;
+      latencyMs = r.latencyMs;
+    } else {
+      throw AdapterError.invalidRequest(`unsupported mode: ${String(mode)}`);
+    }
+
+    this.log.info({ request: requestId, mode, latencyMs, images: images?.length ?? 0 }, 'mode flow completed');
+    return {
+      content: text,
+      id: requestId,
+      created: Math.floor(Date.now() / 1000),
+      model: 'chatgpt-web',
+      latencyMs,
+      states: this.sm.trace(),
+      composerRuleScore: null,
+      submitRuleScore: null,
+      signals,
+      mode,
+      images,
+    };
   }
 
   private async run(messages: ChatMessage[], opts: ChatOptions): Promise<ChatResult> {
@@ -301,6 +363,18 @@ export class ChatGPTClient {
         await this.prepare();
       } else if (this.sm.isErrorState()) {
         this.sm.transition(State.READY, 'recovered from error state');
+      }
+
+      // ---- Mode flows (deep-research / image): independent path ----
+      if (opts.mode && opts.mode !== 'default') {
+        return await this.runModeFlow(opts.mode, messages, requestId, started);
+      }
+      // Mode hygiene: a previous mode flow may have left the composer in a
+      // sticky non-default mode; reset it before a normal request.
+      try {
+        await restoreDefaultMode(this.page);
+      } catch (err) {
+        this.log.warn({ request: requestId, err: (err as Error).message }, 'mode reset failed; continuing');
       }
 
       const sessionId = opts.hermesSessionId ?? 'default';
@@ -573,7 +647,11 @@ export class ChatGPTClient {
       this.sm.transition(State.READY);
       return result;
     } catch (err) {
-      if (err instanceof AdapterError && !this.sm.isErrorState()) {
+      // Mode flows never drive the state machine (they bypass the
+      // COMPOSING/SUBMITTED/GENERATING transitions), so their errors must
+      // not be mapped through sm.fail — READY→GENERATION_ERROR is illegal.
+      const isModeFlow = opts.mode !== undefined && opts.mode !== 'default';
+      if (err instanceof AdapterError && !this.sm.isErrorState() && !isModeFlow) {
         const map: Record<string, State> = {
           AUTH_REQUIRED: State.AUTH_REQUIRED,
           RATE_LIMITED: State.RATE_LIMITED,

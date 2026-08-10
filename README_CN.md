@@ -128,6 +128,26 @@ python skills/chatgpt-web-upload/scripts/cdp_chatgpt_upload.py \
   --file audio.mp3 --prompt "审核这段音频" --port 9233
 ```
 
+### 6. mode 参数（v1.3.0 新增，2026-08-11 实测）
+
+`mode` 字段控制 composer 模式（**只在聊天视图运行**）：
+
+| mode | 功能 | 状态 |
+|---|---|---|
+| `default` | 普通对话 | ✅ 稳定 |
+| `image` | 创建图片 | ✅ live 验证通过（返回图片 URL） |
+| `deep-research` | 深度研究 | ⚠️ 实验性（消息发出但 ChatGPT 端无响应，疑似工作额度 0%） |
+
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"model":"chatgpt-web","mode":"image","messages":[{"role":"user","content":"画一只猫"}]}'
+# 响应含 {"mode":"image","images":["https://chatgpt.com/backend-api/estuary/content?id=..."]}
+# 注意：图片 URL 是会话内临时链接，数分钟内有效
+```
+
+> 模型切换（多模型别名）：当前不可实现——2026-08 新版 UI 智能选择器自动化受限（详见 skills/chatgpt-web-usage）。
+
 ## 🧩 Skills 一览
 
 | Skill | 作用 | 安装 |

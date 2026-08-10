@@ -131,6 +131,27 @@ python skills/chatgpt-web-upload/scripts/cdp_chatgpt_upload.py \
   --file audio.mp3 --prompt "审核这段音频" --port 9233
 ```
 
+### 6. `mode` parameter (new in v1.3.0, live-tested 2026-08-11)
+
+The `mode` field controls the composer mode (**chat view only — never the work view**):
+
+| mode | function | status |
+|---|---|---|
+| `default` | normal chat | ✅ stable |
+| `image` | image generation | ✅ live-verified (returns image URL) |
+| `deep-research` | deep research | ⚠️ experimental (messages submit but ChatGPT never responds; suspected exhausted Work credit) |
+
+```bash
+curl -X POST http://127.0.0.1:8765/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"model":"chatgpt-web","mode":"image","messages":[{"role":"user","content":"画一只猫"}]}'
+# response includes {"mode":"image","images":["https://chatgpt.com/backend-api/estuary/content?id=..."]}
+# note: image URLs are session-scoped and expire within minutes
+```
+
+> Model switching (multi-model aliases): not available — the 2026-08 smart picker
+> UI resists automation (Radix submenu interception; arrow/click methods all fail).
+
 ## 🧩 Skills 一览
 
 | Skill | 作用 | 安装 |

@@ -2,7 +2,7 @@
 name: chatgpt-web-usage
 description: "chatgpt-web(网页版GPT通道)何时用/怎么用。触发: 需要更强模型做独立问答/头脑风暴/翻译/总结/代码, 或用户明确要求用chatgpt网页端时。"
 slug: chatgpt-web-usage
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [windows, linux, macos]
